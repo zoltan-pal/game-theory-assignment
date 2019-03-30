@@ -16,16 +16,18 @@ typedef struct coordinates {
 } coordinates;
 
 
-
-
 typedef struct crowd crowd;
 
 crowd *new_crowd(dimension);
-person *get_person(crowd const *, coordinates);
+
 void foo(crowd const *);
-person *get_group_of_five(crowd const *, person const *, void (*selection_strategy)());
-void select_randomly();
-void select_neighbors();
+
+person *get_group(crowd const *, coordinates *(*)(crowd const *, int), int count);
+
+coordinates *select_randomly(crowd const *, int);
+
+coordinates *select_neighbors(crowd const *, int);
+
 void delete_crowd(crowd *);
 
 #endif //CROWD_H

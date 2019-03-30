@@ -1,5 +1,6 @@
 #ifndef PERSON_H
 #define PERSON_H
+
 #include "bool.h"
 
 typedef struct person person;
@@ -9,4 +10,4 @@ struct person {
 };
 
 
-#endif PERSON_H
+#endif //PERSON_H

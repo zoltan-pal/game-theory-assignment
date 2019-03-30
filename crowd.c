@@ -10,21 +10,18 @@ struct crowd {
 
 // PRIVATE FUNC. DEF.
 person **__a2da(crowd const *);
+
 void __d2da(crowd const *);
 
 // PUBLIC FUNC. IMPL.
 crowd *new_crowd(dimension _dimension) {
-    crowd *c = (crowd *)malloc(sizeof(crowd));
+    crowd *c = (crowd *) malloc(sizeof(crowd));
     c->__dimension = _dimension;
     c->__people = __a2da(c);
     return c;
 }
 
-person *get_person(crowd const *_crowd, coordinates _coordinates) {
-    return &_crowd->__people[_coordinates.x][_coordinates.y];
-}
-
-void foo(crowd const* _crowd) {
+void foo(crowd const *_crowd) {
     srand(time(NULL));
     int row;
     for (row = 0; row < _crowd->__dimension.height; ++row) {
@@ -48,16 +45,54 @@ void delete_crowd(crowd *c) {
     free(c);
 }
 
-person *get_group_of_five(crowd const *_crowd, person const *_person, void s() ) {
-    return _person;
+person *get_group(crowd const *_crowd, coordinates *_selector(crowd const *, int), int _count) {
+    coordinates *selected_coordinates = _selector(_crowd, _count);
+    person *selected_persons = (person *) malloc(_count * sizeof(person));
+
+    int i;
+    for (i = 0; i < _count; ++i) {
+        *(selected_persons + i) = _crowd->__people[(selected_coordinates + i)->y][(selected_coordinates + i)->x];
+        printf("x: %d | y: %d\n", (selected_coordinates + i)->x, (selected_coordinates + i)->y);
+    }
+
+    free(selected_coordinates);
+    return selected_persons;
 }
 
-void select_randomly() {
+coordinates *select_randomly(crowd const *_crowd, int _count) {
+    coordinates *selected_coordinates = (coordinates *) malloc(_count * sizeof(coordinates));
 
+    int x_max = _crowd->__dimension.width;
+    int y_max = _crowd->__dimension.height;
+
+    int i;
+    for (i = 0; i < _count; ++i) {
+        int x = rand() % x_max;
+        int y = rand() % y_max;
+
+        bool b = FALSE;
+        int j;
+        for (j = 0; j < i; ++j) {
+            if ((selected_coordinates + j)->x == x && (selected_coordinates + j)->y == y) {
+                b = TRUE;
+                break;
+            }
+        }
+
+        if (!b) {
+            *(selected_coordinates + i) = (coordinates) {.x = x, .y = y};
+        } else {
+            --i;
+        }
+    }
+    return selected_coordinates;
 }
 
-void select_neighbors() {
+coordinates *select_neighbors(crowd const *_crowd, int _count) {
+    coordinates *selected_coordinates = (coordinates *) malloc(_count * sizeof(coordinates));
+    // TODO: implement selection logic
 
+    return selected_coordinates;
 }
 
 
@@ -66,8 +101,7 @@ person **__a2da(crowd const *_crowd) {
     person **new_2d_array;
     new_2d_array = (person **) malloc(_crowd->__dimension.height * sizeof(person *));
     int row;
-    for (row = 0; row < _crowd->__dimension.height; ++row)
-    {
+    for (row = 0; row < _crowd->__dimension.height; ++row) {
         *(new_2d_array + row) = (person *) malloc(_crowd->__dimension.width * sizeof(person));
     }
     return new_2d_array;
@@ -75,8 +109,7 @@ person **__a2da(crowd const *_crowd) {
 
 void __d2da(crowd const *_crowd) {
     int row;
-    for (row = 0; row < _crowd->__dimension.height; ++row)
-    {
+    for (row = 0; row < _crowd->__dimension.height; ++row) {
         free(*(_crowd->__people + row));
     }
     free(_crowd->__people);
