@@ -21,16 +21,19 @@ crowd *new_crowd(dimension _dimension) {
     return c;
 }
 
-void foo(crowd const *_crowd) {
+void init_sym(crowd const *_crowd) {
     srand(time(NULL));
     int row;
     for (row = 0; row < _crowd->__dimension.height; ++row) {
         int col;
         for (col = 0; col < _crowd->__dimension.width; ++col) {
-            _crowd->__people[row][col].gambled_in_last_turn = rand() % 2;
+            _crowd->__people[row][col].gambled_in_last_turn = FALSE; // rand() % 2;
         }
     }
+}
 
+void print_people_2d_arr(crowd const *_crowd) {
+    int row;
     for (row = 0; row < _crowd->__dimension.height; ++row) {
         int col;
         for (col = 0; col < _crowd->__dimension.width; ++col) {
@@ -52,7 +55,9 @@ person *get_group(crowd const *_crowd, coordinates *_selector(crowd const *, int
     int i;
     for (i = 0; i < _count; ++i) {
         *(selected_persons + i) = _crowd->__people[(selected_coordinates + i)->y][(selected_coordinates + i)->x];
-        printf("x: %d | y: %d\n", (selected_coordinates + i)->x, (selected_coordinates + i)->y);
+
+        // test selection: only selected persons have TRUE value in their gambled_in_last_turn field
+        _crowd->__people[(selected_coordinates + i)->y][(selected_coordinates + i)->x].gambled_in_last_turn = TRUE;
     }
 
     free(selected_coordinates);
@@ -90,11 +95,35 @@ coordinates *select_randomly(crowd const *_crowd, int _count) {
 
 coordinates *select_neighbors(crowd const *_crowd, int _count) {
     coordinates *selected_coordinates = (coordinates *) malloc(_count * sizeof(coordinates));
-    // TODO: implement selection logic
 
+    coordinates *person_in_center = select_randomly(_crowd, 1);
+    *selected_coordinates = *person_in_center;
+    coordinates north, east, south, west;
+
+    north = person_in_center->y == 0
+            ? (coordinates) {.y = _crowd->__dimension.height - 1, .x = person_in_center->x}
+            : (coordinates) {.y = person_in_center->y - 1, .x = person_in_center->x};
+
+    east = person_in_center->x == _crowd->__dimension.width - 1
+           ? (coordinates) {.y = person_in_center->y, .x = 0}
+           : (coordinates) {.y = person_in_center->y, .x = person_in_center->x + 1};
+
+    south = person_in_center->y == _crowd->__dimension.height - 1
+            ? (coordinates) {.y = 0, .x = person_in_center->x}
+            : (coordinates) {.y = person_in_center->y + 1, .x = person_in_center->x};
+
+    west = person_in_center->x == 0
+           ? (coordinates) {.y = person_in_center->y, .x = _crowd->__dimension.width - 1}
+           : (coordinates) {.y = person_in_center->y, .x = person_in_center->x - 1};
+
+    *(selected_coordinates + 1) = north;
+    *(selected_coordinates + 2) = east;
+    *(selected_coordinates + 3) = south;
+    *(selected_coordinates + 4) = west;
+
+    free(person_in_center);
     return selected_coordinates;
 }
-
 
 // PRIVATE FUNC. IMPL.
 person **__a2da(crowd const *_crowd) {

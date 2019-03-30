@@ -21,19 +21,19 @@ int main(int argc, char **argv) {
     arg_check(argc, argv);
     set_topology(*(argv + 2));
 
-    crowd_dimension = (dimension) {.width = 5, .height = 5};
+    crowd_dimension = (dimension) {.width = 4, .height = 4};
 
     srand(time(NULL));
 
+    int group_size = 5;
     crowd *c = new_crowd(crowd_dimension);
-    foo(c);
+    init_sym(c);
+    print_people_2d_arr(c);
 
-    person *p = get_group(c, select_randomly, 5);
-
-    int i;
-    for (i = 0; i < 5; ++i) {
-        printf("%d\n", (p + i)->gambled_in_last_turn);
-    }
+    person *p = get_group(c, select_neighbors, group_size);
+    
+    printf("\n");
+    print_people_2d_arr(c);
 
     free(p);
     delete_crowd(c);

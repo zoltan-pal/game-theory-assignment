@@ -20,7 +20,9 @@ typedef struct crowd crowd;
 
 crowd *new_crowd(dimension);
 
-void foo(crowd const *);
+void init_sym(crowd const *);
+
+void print_people_2d_arr(crowd const *);
 
 person *get_group(crowd const *, coordinates *(*)(crowd const *, int), int count);
 
