@@ -21,6 +21,19 @@ int main(int argc, char **argv) {
     arg_check(argc, argv);
     set_topology(*(argv + 2));
 
+    coordinates *(*selection_strategy)(crowd const *, int);
+    switch (selected_topology) {
+        case FIXED:
+            selection_strategy = select_neighbors;
+            break;
+        case RANDOM:
+            selection_strategy = select_randomly;
+            break;
+        case MIXED:
+        default:
+            selection_strategy = select_randomly;
+    }
+
     crowd_dimension = (dimension) {.width = 4, .height = 4};
 
     srand(time(NULL));
@@ -28,14 +41,21 @@ int main(int argc, char **argv) {
     int group_size = 5;
     crowd *c = new_crowd(crowd_dimension);
     init_sym(c);
-    print_people_2d_arr(c);
+    print_crowd(c);
 
-    person *p = get_group(c, select_neighbors, group_size);
-    
+    // get references to selected persons
+    person **group = get_group(c, selection_strategy, group_size);
+
+    /// test selection: only selected persons have TRUE value in their gambled_in_last_turn field ///
+    int i;
+    for (i = 0; i < group_size; ++i) {
+        group[i]->gambled_in_last_turn = TRUE;
+    }
     printf("\n");
-    print_people_2d_arr(c);
+    print_crowd(c);
+    /////////////////////////////////////////////////////////////////////////////////////////////////
 
-    free(p);
+    free(group);
     delete_crowd(c);
 
     return 0;
@@ -66,9 +86,9 @@ void arg_check(int argc, char **argv) {
 bool arg_validate(int argc, char **argv) {
     if (argc != 3)
         return FALSE;
-    if (!(strcmp(*(argv + 1), "-t") == 0 || strcmp(*(argv + 1), "--topology") == 0))
+    if (!(strcmp(argv[1], "-t") == 0 || strcmp(argv[1], "--topology") == 0))
         return FALSE;
-    if (!(strcmp(*(argv + 2), "fixed") == 0 || strcmp(*(argv + 2), "random") == 0 || strcmp(*(argv + 2), "mixed") == 0))
+    if (!(strcmp(argv[2], "fixed") == 0 || strcmp(argv[2], "random") == 0 || strcmp(argv[2], "mixed") == 0))
         return FALSE;
     return TRUE;
 }

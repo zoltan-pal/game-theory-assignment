@@ -22,9 +22,9 @@ crowd *new_crowd(dimension);
 
 void init_sym(crowd const *);
 
-void print_people_2d_arr(crowd const *);
+void print_crowd(crowd const *);
 
-person *get_group(crowd const *, coordinates *(*)(crowd const *, int), int count);
+person **get_group(crowd const *, coordinates *(*)(crowd const *, int), int count);
 
 coordinates *select_randomly(crowd const *, int);
 

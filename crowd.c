@@ -32,7 +32,7 @@ void init_sym(crowd const *_crowd) {
     }
 }
 
-void print_people_2d_arr(crowd const *_crowd) {
+void print_crowd(crowd const *_crowd) {
     int row;
     for (row = 0; row < _crowd->__dimension.height; ++row) {
         int col;
@@ -48,16 +48,13 @@ void delete_crowd(crowd *c) {
     free(c);
 }
 
-person *get_group(crowd const *_crowd, coordinates *_selector(crowd const *, int), int _count) {
+person **get_group(crowd const *_crowd, coordinates *_selector(crowd const *, int), int _count) {
     coordinates *selected_coordinates = _selector(_crowd, _count);
-    person *selected_persons = (person *) malloc(_count * sizeof(person));
+    person **selected_persons = (person **) malloc(_count * sizeof(person *));
 
     int i;
     for (i = 0; i < _count; ++i) {
-        *(selected_persons + i) = _crowd->__people[(selected_coordinates + i)->y][(selected_coordinates + i)->x];
-
-        // test selection: only selected persons have TRUE value in their gambled_in_last_turn field
-        _crowd->__people[(selected_coordinates + i)->y][(selected_coordinates + i)->x].gambled_in_last_turn = TRUE;
+        selected_persons[i] = &_crowd->__people[selected_coordinates[i].y][selected_coordinates[i].x];
     }
 
     free(selected_coordinates);
@@ -78,14 +75,14 @@ coordinates *select_randomly(crowd const *_crowd, int _count) {
         bool b = FALSE;
         int j;
         for (j = 0; j < i; ++j) {
-            if ((selected_coordinates + j)->x == x && (selected_coordinates + j)->y == y) {
+            if (selected_coordinates[j].x == x && selected_coordinates[j].y == y) {
                 b = TRUE;
                 break;
             }
         }
 
         if (!b) {
-            *(selected_coordinates + i) = (coordinates) {.x = x, .y = y};
+            selected_coordinates[i] = (coordinates) {.x = x, .y = y};
         } else {
             --i;
         }
