@@ -5,11 +5,9 @@
 
 typedef struct person person;
 struct person {
-    bool contributed_last_round;
-    bool contribute_next_round;
+    bool contributing_strategy; // true: contributes, false: keeps money for themselves
     double profit;
     bool in_group;
 };
-
 
 #endif //PERSON_H

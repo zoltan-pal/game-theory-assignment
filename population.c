@@ -7,7 +7,7 @@
 struct population {
     person **__people;
     dimension __dimension;
-    double __collected_money;
+    int __collected_money;
     double __multiplication_factor;
 };
 
@@ -21,39 +21,37 @@ population *new_population(dimension _dimension) {
     population *c = (population *) malloc(sizeof(population));
     c->__dimension = _dimension;
     c->__people = __a2da(c);
-    c->__multiplication_factor = 1;
+    c->__multiplication_factor = 9;
     return c;
 }
 
-void init_sym(population const *_population) {
+void init_simulation(population const *_population) {
     int row;
     for (row = 0; row < _population->__dimension.height; ++row) {
         int col;
         for (col = 0; col < _population->__dimension.width; ++col) {
-            _population->__people[row][col].contribute_next_round = rand() % 2;
+            _population->__people[row][col].contributing_strategy = rand() % 2;
             _population->__people[row][col].profit = 0;
         }
     }
 }
 
-void start_new_round(population const *_population) {
+void clear_grouping_status(population const *_population) {
     int row;
     for (row = 0; row < _population->__dimension.height; ++row) {
         int col;
         for (col = 0; col < _population->__dimension.width; ++col) {
-            _population->__people[row][col].contributed_last_round = _population->__people[row][col].contribute_next_round;
-            _population->__people[row][col].contribute_next_round = rand() % 2;
             _population->__people[row][col].in_group = FALSE;
         }
     }
 }
 
-void print_population(population const *_population) {
+void print_population_strategy(population const *_population) {
     int row;
     for (row = 0; row < _population->__dimension.height; ++row) {
         int col;
         for (col = 0; col < _population->__dimension.width; ++col) {
-            printf("%d\t", _population->__people[row][col].contributed_last_round);
+            printf("%d\t", _population->__people[row][col].contributing_strategy);
         }
         printf("\n");
     }
@@ -158,59 +156,37 @@ coordinates *select_neighbors(population const *_population, int _count) {
     return selected_coordinates;
 }
 
-int collect_money(person **group, int group_size) {
-    int sum = 0;
-    int i;
-    for (i = 0; i < group_size; ++i) {
-        sum += group[i]->contributed_last_round;
+int collect_money(population *_population) {
+    _population->__collected_money = 0;
+    int row;
+    for (row = 0; row < _population->__dimension.height; ++row) {
+        int col;
+        for (col = 0; col < _population->__dimension.width; ++col) {
+            _population->__collected_money += _population->__people[row][col].contributing_strategy;
+        }
     }
-//    printf("CM: %d\n", sum);
-    return sum;
+    return _population->__collected_money;
 }
 
-void split_collected_money(int cm, person **group, int group_size) {
+void split_collected_money(population *_population) {
     double prize_by_person =
-            1
-            * cm
-            / (double)5;
+            _population->__multiplication_factor
+            * _population->__collected_money
+            / (double)(_population->__dimension.width * _population->__dimension.height);
+
+
+    _population->__collected_money = 0;
 
     int row;
-    int i;
-    for (i = 0; i < group_size; ++i) {
-        group[i]->profit = prize_by_person - group[i]->contributed_last_round;
+    for (row = 0; row < _population->__dimension.height; ++row) {
+        int col;
+        for (col = 0; col < _population->__dimension.width; ++col) {
+            _population->__people[row][col].profit += prize_by_person - _population->__people[row][col].contributing_strategy;
+//            printf("profit: %lf\n", _population->__people[row][col].profit);
+        }
     }
 //    printf("PBP: %lf\n", prize_by_person);
 }
-
-//void collect_money(population *_population) {
-//    _population->__collected_money = 0;
-//    int row;
-//    for (row = 0; row < _population->__dimension.height; ++row) {
-//        int col;
-//        for (col = 0; col < _population->__dimension.width; ++col) {
-//            _population->__collected_money += _population->__people[row][col].contributed_last_round;
-//        }
-//    }
-//    printf("CM: %lf\n", _population->__collected_money);
-//}
-//
-//void split_collected_money(population *_population) {
-//    double prize_by_person =
-//            _population->__multiplication_factor
-//            * _population->__collected_money
-//            / (double)(_population->__dimension.width * _population->__dimension.height);
-//    _population->__collected_money = 0;
-//
-//    int row;
-//    for (row = 0; row < _population->__dimension.height; ++row) {
-//        int col;
-//        for (col = 0; col < _population->__dimension.width; ++col) {
-//            _population->__people[row][col].profit += prize_by_person - _population->__people[row][col].contributed_last_round;
-////            printf("profit: %lf\n", _population->__people[row][col].profit);
-//        }
-//    }
-////    printf("PBP: %lf\n", prize_by_person);
-//}
 
 // PRIVATE FUNC. IMPL.
 person **__a2da(population const *_population) {

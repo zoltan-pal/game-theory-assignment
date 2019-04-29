@@ -6,8 +6,6 @@
 #include "bool.h"
 #include "person.h"
 
-void strprint(char *);
-
 void arg_check(int, char **);
 
 bool arg_validate(int, char **);
@@ -15,7 +13,7 @@ bool arg_validate(int, char **);
 void set_topology(const char *);
 
 topology selected_topology;
-dimension crowd_dimension;
+dimension population_dimension;
 
 int main(int argc, char **argv) {
     srand(time(NULL));
@@ -36,51 +34,39 @@ int main(int argc, char **argv) {
             selection_strategy = select_randomly;
     }
 
-    crowd_dimension = (dimension) {.width = 10, .height = 10};
+    population_dimension = (dimension) {.width = 10, .height = 10};
 
     int group_size = 5;
-    population *pop = new_population(crowd_dimension);
-    init_sym(pop);
-    int it;
-    for (it = 0; it < 10000; ++it) {
-        start_new_round(pop);
+    population *pop = new_population(population_dimension);
+    init_simulation(pop);
+    FILE *out_file = fopen("sim_result.txt", "w");
 
-        print_population(pop);
-        // get references to selected persons
+    int round;
+    for (round = 0; round < 1000; ++round) {
+        clear_grouping_status(pop);
+
         person **group = get_group(pop, selection_strategy, group_size);
 
-        /// test selection: only selected persons have TRUE value in their gambled_in_last_turn field ///
         int i;
         for (i = 0; i < group_size; ++i) {
             group[i]->in_group = TRUE;
         }
-        printf("\n");
-        print_population_group(pop);
-        /////////////////////////////////////////////////////////////////////////////////////////////////
-        printf("\n");
-        int cm = collect_money(group, group_size);
-        split_collected_money(cm, group, group_size);
+
+        int cm = collect_money(pop);
+        fprintf(out_file, "%d\t%d\r\n",round, cm);
+        split_collected_money(pop);
+
         print_population_profit(pop);
-
-
-        for (i = 1; i < group_size; ++i) {
-            if (group[0]->contributed_last_round == group[i]->contributed_last_round)
-                continue;
-            if (group[i]->profit > group[0]->profit) {
-                group[0]->contribute_next_round = group[i]->contributed_last_round;
-                break;
-            }
-        }
         printf("\n");
-        print_population_group(pop);
+        int selected_index = (rand() % group_size - 1) + 1;
+        person *person1 = group[selected_index];
+        if (person1->profit > group[0]->profit)
+            group[0]->contributing_strategy = person1->contributing_strategy;
 
-        for (i = 0; i < group_size; ++i) {
-            group[i]->in_group = FALSE;
-        }
-        printf("%d\t%d\n", it, cm);
+        free(group);
     }
 
-//    free(group);
+    fclose(out_file);
     delete_population(pop);
 
     return 0;
@@ -116,10 +102,4 @@ bool arg_validate(int argc, char **argv) {
     if (!(strcmp(argv[2], "fixed") == 0 || strcmp(argv[2], "random") == 0 || strcmp(argv[2], "mixed") == 0))
         return FALSE;
     return TRUE;
-}
-
-void strprint(char *s) {
-    char *p = s;
-    while (*p != '\0')
-        printf("%c", *p++);
 }

@@ -1,5 +1,5 @@
-#ifndef CROWD_H
-#define CROWD_H
+#ifndef POPULATION_H
+#define POPULATION_H
 
 #include "person.h"
 
@@ -20,13 +20,13 @@ typedef struct population population;
 
 population *new_population(dimension);
 
-void init_sym(population const *);
+void init_simulation(population const *);
 
-void print_population(population const *);
+void print_population_strategy(population const *);
 void print_population_group(population const *);
 void print_population_profit(population const *);
 
-void start_new_round(population const *);
+void clear_grouping_status(population const *);
 
 person **get_group(population const *, coordinates *(*)(population const *, int), int count);
 
@@ -34,17 +34,10 @@ coordinates *select_randomly(population const *, int);
 
 coordinates *select_neighbors(population const *, int);
 
-//void collect_money(population *);
-//
-//void split_collected_money(population *);
+int collect_money(population *);
+
+void split_collected_money(population *);
 
 void delete_population(population *);
 
-
-
-int collect_money(person **, int);
-
-void split_collected_money(int, person **, int);
-
-
-#endif //CROWD_H
+#endif //POPULATION_H
