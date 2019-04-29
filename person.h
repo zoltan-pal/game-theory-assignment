@@ -5,8 +5,10 @@
 
 typedef struct person person;
 struct person {
-    bool gambled_in_last_turn;
+    bool contributed_last_round;
+    bool contribute_next_round;
     double profit;
+    bool in_group;
 };
 
 

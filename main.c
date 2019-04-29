@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-#include "crowd.h"
+#include "population.h"
 #include "bool.h"
 #include "person.h"
 
@@ -18,10 +18,12 @@ topology selected_topology;
 dimension crowd_dimension;
 
 int main(int argc, char **argv) {
+    srand(time(NULL));
+
     arg_check(argc, argv);
     set_topology(*(argv + 2));
 
-    coordinates *(*selection_strategy)(crowd const *, int);
+    coordinates *(*selection_strategy)(population const *, int);
     switch (selected_topology) {
         case FIXED:
             selection_strategy = select_neighbors;
@@ -34,29 +36,52 @@ int main(int argc, char **argv) {
             selection_strategy = select_randomly;
     }
 
-    crowd_dimension = (dimension) {.width = 4, .height = 4};
-
-    srand(time(NULL));
+    crowd_dimension = (dimension) {.width = 10, .height = 10};
 
     int group_size = 5;
-    crowd *c = new_crowd(crowd_dimension);
-    init_sym(c);
-    print_crowd(c);
+    population *pop = new_population(crowd_dimension);
+    init_sym(pop);
+    int it;
+    for (it = 0; it < 10000; ++it) {
+        start_new_round(pop);
 
-    // get references to selected persons
-    person **group = get_group(c, selection_strategy, group_size);
+        print_population(pop);
+        // get references to selected persons
+        person **group = get_group(pop, selection_strategy, group_size);
 
-    /// test selection: only selected persons have TRUE value in their gambled_in_last_turn field ///
-    int i;
-    for (i = 0; i < group_size; ++i) {
-        group[i]->gambled_in_last_turn = TRUE;
+        /// test selection: only selected persons have TRUE value in their gambled_in_last_turn field ///
+        int i;
+        for (i = 0; i < group_size; ++i) {
+            group[i]->in_group = TRUE;
+        }
+        printf("\n");
+        print_population_group(pop);
+        /////////////////////////////////////////////////////////////////////////////////////////////////
+        printf("\n");
+        int cm = collect_money(group, group_size);
+        split_collected_money(cm, group, group_size);
+        print_population_profit(pop);
+
+
+        for (i = 1; i < group_size; ++i) {
+            if (group[0]->contributed_last_round == group[i]->contributed_last_round)
+                continue;
+            if (group[i]->profit > group[0]->profit) {
+                group[0]->contribute_next_round = group[i]->contributed_last_round;
+                break;
+            }
+        }
+        printf("\n");
+        print_population_group(pop);
+
+        for (i = 0; i < group_size; ++i) {
+            group[i]->in_group = FALSE;
+        }
+        printf("%d\t%d\n", it, cm);
     }
-    printf("\n");
-    print_crowd(c);
-    /////////////////////////////////////////////////////////////////////////////////////////////////
 
-    free(group);
-    delete_crowd(c);
+//    free(group);
+    delete_population(pop);
 
     return 0;
 }
