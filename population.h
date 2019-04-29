@@ -11,9 +11,7 @@ typedef struct dimension {
     int width, height;
 } dimension;
 
-typedef struct coordinates {
-    int x, y;
-} coordinates;
+
 
 
 typedef struct population population;
@@ -28,15 +26,23 @@ void print_population_profit(population const *);
 
 void clear_grouping_status(population const *);
 
-person **get_group(population const *, coordinates *(*)(population const *, int), int count);
+person **get_group(population const *, person const *, coordinates *(*)(person const *, population const *, int), int count);
 
-coordinates *select_randomly(population const *, int);
+person *get_random_person(population const *);
 
-coordinates *select_neighbors(population const *, int);
+coordinates *select_randomly(person const *, population const *, int);
 
-int collect_money(population *);
+coordinates *select_neighbors(person const *, population const *, int);
 
-void split_collected_money(population *);
+//int collect_money(population *);
+
+int collect_contributions(person const *, person const **, int);
+
+void split_contributions(person *, person **, int, int, double);
+
+//void split_collected_money(population *);
+
+int get_contrubutor_count(population const *);
 
 void delete_population(population *);
 

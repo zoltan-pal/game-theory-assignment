@@ -7,8 +7,6 @@
 struct population {
     person **__people;
     dimension __dimension;
-    int __collected_money;
-    double __multiplication_factor;
 };
 
 // PRIVATE FUNC. DEF.
@@ -21,7 +19,6 @@ population *new_population(dimension _dimension) {
     population *c = (population *) malloc(sizeof(population));
     c->__dimension = _dimension;
     c->__people = __a2da(c);
-    c->__multiplication_factor = 9;
     return c;
 }
 
@@ -30,8 +27,9 @@ void init_simulation(population const *_population) {
     for (row = 0; row < _population->__dimension.height; ++row) {
         int col;
         for (col = 0; col < _population->__dimension.width; ++col) {
-            _population->__people[row][col].contributing_strategy = rand() % 2;
-            _population->__people[row][col].profit = 0;
+            _population->__people[row][col].__contributing_strategy = rand() % 2;
+            _population->__people[row][col].__profit = 0;
+            _population->__people[row][col].__coordinates = (coordinates) { .y = row, .x = col };
         }
     }
 }
@@ -41,7 +39,7 @@ void clear_grouping_status(population const *_population) {
     for (row = 0; row < _population->__dimension.height; ++row) {
         int col;
         for (col = 0; col < _population->__dimension.width; ++col) {
-            _population->__people[row][col].in_group = FALSE;
+            _population->__people[row][col].__in_group = FALSE;
         }
     }
 }
@@ -51,27 +49,37 @@ void print_population_strategy(population const *_population) {
     for (row = 0; row < _population->__dimension.height; ++row) {
         int col;
         for (col = 0; col < _population->__dimension.width; ++col) {
-            printf("%d\t", _population->__people[row][col].contributing_strategy);
+            if(_population->__people[row][col].__contributing_strategy) {
+                printf("[X]");
+            } else {
+                printf("[ ]");
+            }
         }
         printf("\n");
     }
+    printf("\n");
 }
 void print_population_group(population const *_population) {
     int row;
     for (row = 0; row < _population->__dimension.height; ++row) {
         int col;
         for (col = 0; col < _population->__dimension.width; ++col) {
-            printf("%d\t", _population->__people[row][col].in_group);
+            if(_population->__people[row][col].__in_group) {
+                printf("[X]");
+            } else {
+                printf("[ ]");
+            }
         }
         printf("\n");
     }
+    printf("\n");
 }
 void print_population_profit(population const *_population) {
     int row;
     for (row = 0; row < _population->__dimension.height; ++row) {
         int col;
         for (col = 0; col < _population->__dimension.width; ++col) {
-            printf("%.2lf\t", _population->__people[row][col].profit);
+            printf("%.2lf\t", _population->__people[row][col].__profit);
         }
         printf("\n");
     }
@@ -82,8 +90,13 @@ void delete_population(population *pop) {
     free(pop);
 }
 
-person **get_group(population const *_population, coordinates *_selector(population const *, int), int _count) {
-    coordinates *selected_coordinates = _selector(_population, _count);
+person **get_group(
+        population const *_population,
+        person const *_preselected_person,
+        coordinates *_selector(person const *, population const *, int),
+        int _count) {
+
+    coordinates *selected_coordinates = _selector(_preselected_person, _population, _count);
     person **selected_persons = (person **) malloc(_count * sizeof(person *));
 
     int i;
@@ -95,7 +108,7 @@ person **get_group(population const *_population, coordinates *_selector(populat
     return selected_persons;
 }
 
-coordinates *select_randomly(population const *_population, int _count) {
+coordinates *select_randomly(person const *_preselected_person, population const *_population, int _count) {
     coordinates *selected_coordinates = (coordinates *) malloc(_count * sizeof(coordinates));
 
     int x_max = _population->__dimension.width;
@@ -109,7 +122,7 @@ coordinates *select_randomly(population const *_population, int _count) {
         bool b = FALSE;
         int j;
         for (j = 0; j < i; ++j) {
-            if (selected_coordinates[j].x == x && selected_coordinates[j].y == y) {
+            if (selected_coordinates[j].x == x && selected_coordinates[j].y == y) { //TODO: add || == preselected.coord
                 b = TRUE;
                 break;
             }
@@ -124,68 +137,78 @@ coordinates *select_randomly(population const *_population, int _count) {
     return selected_coordinates;
 }
 
-coordinates *select_neighbors(population const *_population, int _count) {
+coordinates *select_neighbors(person const *_person_in_center, population const *_population, int _count) {
     coordinates *selected_coordinates = (coordinates *) malloc(_count * sizeof(coordinates));
 
-    coordinates *person_in_center = select_randomly(_population, 1);
-    *selected_coordinates = *person_in_center;
+    coordinates conter_coordinates = (coordinates) {
+        .y = _person_in_center->__coordinates.y,
+        .x = _person_in_center->__coordinates.x
+    };
+
     coordinates north, east, south, west;
 
-    north = person_in_center->y == 0
-            ? (coordinates) {.y = _population->__dimension.height - 1, .x = person_in_center->x}
-            : (coordinates) {.y = person_in_center->y - 1, .x = person_in_center->x};
+    north = conter_coordinates.y == 0
+            ? (coordinates) {.y = _population->__dimension.height - 1, .x = conter_coordinates.x}
+            : (coordinates) {.y = conter_coordinates.y - 1, .x = conter_coordinates.x};
 
-    east = person_in_center->x == _population->__dimension.width - 1
-           ? (coordinates) {.y = person_in_center->y, .x = 0}
-           : (coordinates) {.y = person_in_center->y, .x = person_in_center->x + 1};
+    east = conter_coordinates.x == _population->__dimension.width - 1
+           ? (coordinates) {.y = conter_coordinates.y, .x = 0}
+           : (coordinates) {.y = conter_coordinates.y, .x = conter_coordinates.x + 1};
 
-    south = person_in_center->y == _population->__dimension.height - 1
-            ? (coordinates) {.y = 0, .x = person_in_center->x}
-            : (coordinates) {.y = person_in_center->y + 1, .x = person_in_center->x};
+    south = conter_coordinates.y == _population->__dimension.height - 1
+            ? (coordinates) {.y = 0, .x = conter_coordinates.x}
+            : (coordinates) {.y = conter_coordinates.y + 1, .x = conter_coordinates.x};
 
-    west = person_in_center->x == 0
-           ? (coordinates) {.y = person_in_center->y, .x = _population->__dimension.width - 1}
-           : (coordinates) {.y = person_in_center->y, .x = person_in_center->x - 1};
+    west = conter_coordinates.x == 0
+           ? (coordinates) {.y = conter_coordinates.y, .x = _population->__dimension.width - 1}
+           : (coordinates) {.y = conter_coordinates.y, .x = conter_coordinates.x - 1};
 
-    *(selected_coordinates + 1) = north;
-    *(selected_coordinates + 2) = east;
-    *(selected_coordinates + 3) = south;
-    *(selected_coordinates + 4) = west;
+    *(selected_coordinates + 0) = north;
+    *(selected_coordinates + 1) = east;
+    *(selected_coordinates + 2) = south;
+    *(selected_coordinates + 3) = west;
 
-    free(person_in_center);
     return selected_coordinates;
 }
 
-int collect_money(population *_population) {
-    _population->__collected_money = 0;
-    int row;
-    for (row = 0; row < _population->__dimension.height; ++row) {
-        int col;
-        for (col = 0; col < _population->__dimension.width; ++col) {
-            _population->__collected_money += _population->__people[row][col].contributing_strategy;
-        }
-    }
-    return _population->__collected_money;
+person *get_random_person(population const *_population) {
+    int x_max = _population->__dimension.width;
+    int y_max = _population->__dimension.height;
+
+    int x = rand() % x_max;
+    int y = rand() % y_max;
+
+    return &_population->__people[y][x];
 }
 
-void split_collected_money(population *_population) {
-    double prize_by_person =
-            _population->__multiplication_factor
-            * _population->__collected_money
-            / (double)(_population->__dimension.width * _population->__dimension.height);
+int collect_contributions(person const *_influencer_candidate, person const **_groupmates, int _groupmate_count) {
+    int total_contrubutions = 0;
+    int i;
+    for (i = 0; i < _groupmate_count; ++i) {
+        total_contrubutions += _groupmates[i]->__contributing_strategy;
+    }
+    return total_contrubutions + _influencer_candidate->__contributing_strategy;
+}
 
+void split_contributions(person *_influencer_candidate, person **_groupmates, int _groupmate_count, int contributions, double _multiplication_factor ) {
+    double share = contributions / 5.0 * _multiplication_factor;
+    _influencer_candidate->__profit += share - _influencer_candidate->__contributing_strategy;
+    int i;
+    for (i = 0; i < _groupmate_count; ++i) {
+        _groupmates[i]->__profit += share - _groupmates[i]->__contributing_strategy;
+    }
+}
 
-    _population->__collected_money = 0;
-
+int get_contrubutor_count(population const *_population) {
+    int contributor_count = 0;
     int row;
     for (row = 0; row < _population->__dimension.height; ++row) {
         int col;
         for (col = 0; col < _population->__dimension.width; ++col) {
-            _population->__people[row][col].profit += prize_by_person - _population->__people[row][col].contributing_strategy;
-//            printf("profit: %lf\n", _population->__people[row][col].profit);
+            contributor_count += _population->__people[row][col].__contributing_strategy;
         }
     }
-//    printf("PBP: %lf\n", prize_by_person);
+    return contributor_count;
 }
 
 // PRIVATE FUNC. IMPL.

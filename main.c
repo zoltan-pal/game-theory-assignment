@@ -21,7 +21,7 @@ int main(int argc, char **argv) {
     arg_check(argc, argv);
     set_topology(*(argv + 2));
 
-    coordinates *(*selection_strategy)(population const *, int);
+    coordinates *(*selection_strategy)(person const *, population const *, int);
     switch (selected_topology) {
         case FIXED:
             selection_strategy = select_neighbors;
@@ -36,34 +36,73 @@ int main(int argc, char **argv) {
 
     population_dimension = (dimension) {.width = 10, .height = 10};
 
-    int group_size = 5;
+    int groupmate_count = 4;
     population *pop = new_population(population_dimension);
     init_simulation(pop);
     FILE *out_file = fopen("sim_result.txt", "w");
 
+    int multiplication_factor_r = 1;
+
     int round;
     for (round = 0; round < 1000; ++round) {
         clear_grouping_status(pop);
-
-        person **group = get_group(pop, selection_strategy, group_size);
-
         int i;
-        for (i = 0; i < group_size; ++i) {
-            group[i]->in_group = TRUE;
+        person *p = get_random_person(pop);
+        person **p_groupmates = get_group(pop, p, selection_strategy, groupmate_count);
+
+//        p->__in_group = TRUE;
+//        print_population_group(pop);
+//
+//        for (i = 0; i < 4; ++i) {
+//            p_groupmates[i]->__in_group = TRUE;
+//        }
+//
+//        print_population_group(pop);
+
+        for (i = 0; i < groupmate_count; ++i) {
+            person **gm_groupmates = get_group(pop, p_groupmates[i], selection_strategy, groupmate_count);
+            int contribs = collect_contributions(p_groupmates[i], (const person **) gm_groupmates, groupmate_count);
+            split_contributions(
+                    p_groupmates[i],
+                    gm_groupmates,
+                    groupmate_count,
+                    contribs,
+                    multiplication_factor_r
+                    );
+//            int j;
+//            for (j = 0; j < 4; ++j) {
+//                gm_groupmates[j]->__in_group = TRUE;
+//            }
+//            p_groupmates[i]->__in_group = TRUE;
+//            print_population_group(pop);
+//            print_population_profit(pop);
+            free(gm_groupmates);
         }
+//        print_population_group(pop);
+        int contribs = collect_contributions(p, (const person **) p_groupmates, groupmate_count);
+        split_contributions(
+                p,
+                p_groupmates,
+                groupmate_count,
+                contribs,
+                multiplication_factor_r
+        );
 
-        int cm = collect_money(pop);
-        fprintf(out_file, "%d\t%d\r\n",round, cm);
-        split_collected_money(pop);
+        int selected_index = (rand() % groupmate_count - 1) + 1;
+        person *person1 = p_groupmates[selected_index];
+        if (person1->__profit > p_groupmates[0]->__profit)
+            p_groupmates[0]->__contributing_strategy = person1->__contributing_strategy;
 
-        print_population_profit(pop);
-        printf("\n");
-        int selected_index = (rand() % group_size - 1) + 1;
-        person *person1 = group[selected_index];
-        if (person1->profit > group[0]->profit)
-            group[0]->contributing_strategy = person1->contributing_strategy;
+        int contributor_count = get_contrubutor_count(pop);
+        fprintf(out_file, "%d\t%d\r\n",round, contributor_count);
 
-        free(group);
+
+//        print_population_profit(pop);
+//        printf("\n");
+
+//        clear_grouping_status(pop);
+        print_population_strategy(pop);
+        free(p_groupmates);
     }
 
     fclose(out_file);
