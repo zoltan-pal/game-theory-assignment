@@ -5,4 +5,4 @@ typedef enum bool {
     FALSE = 0, TRUE = 1
 } bool;
 
-#endif //BOOL_H
+#endif /* BOOL_H */

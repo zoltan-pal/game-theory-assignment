@@ -1,112 +1,148 @@
+/* 
+    set yrange [:] reverse
+    splot "sim_result.txt" u 1:2:3 with lines
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
 #include "population.h"
 #include "bool.h"
 #include "person.h"
+#include "dimension.h"
+
+#define DEBUG
+
+typedef enum topology {
+    FIXED = 0, RANDOM = 1, MIXED = 2
+} topology;
 
 void arg_check(int, char **);
-
 bool arg_validate(int, char **);
-
 void set_topology(const char *);
 
 topology selected_topology;
 dimension population_dimension;
 
 int main(int argc, char **argv) {
+    coordinates *(*primary_groupmate_selection_strategy)(person const *, population const *, int);
+    coordinates *(*secondary_groupmate_selection_strategy)(person const *, population const *, int);
+    
+    FILE *out_file;
+    char out_file_name[24];
+    population *simulated_population;
+    int groupmate_count,
+        multiplication_factor_r,
+        contributions;
+    
     srand(time(NULL));
 
     arg_check(argc, argv);
     set_topology(*(argv + 2));
 
-    coordinates *(*selection_strategy)(person const *, population const *, int);
     switch (selected_topology) {
         case FIXED:
-            selection_strategy = select_neighbors;
+            primary_groupmate_selection_strategy = select_neighbors;
+            secondary_groupmate_selection_strategy = select_neighbors;
             break;
         case RANDOM:
-            selection_strategy = select_randomly;
+            primary_groupmate_selection_strategy = select_randomly;
+            secondary_groupmate_selection_strategy = select_randomly;
             break;
         case MIXED:
         default:
-            selection_strategy = select_randomly;
+            primary_groupmate_selection_strategy = select_randomly;
+            secondary_groupmate_selection_strategy = select_neighbors;
     }
 
-    population_dimension = (dimension) {.width = 10, .height = 10};
+    population_dimension.width = 32;
+    population_dimension.height = 32;
+    simulated_population = new_population(population_dimension);
+    groupmate_count = 4;
+    
+    strcpy(out_file_name, "sim_result_");
+    strcat(out_file_name, *(argv + 2));
+    strcat(out_file_name, ".txt");
+    out_file = fopen(out_file_name, "w");
+    fprintf(out_file, "# X\tY\tZ\r\n");
+    
+    for(multiplication_factor_r = 1; multiplication_factor_r <= 50; ++multiplication_factor_r) {
+        int round,
+            max_rounds;
 
-    int groupmate_count = 4;
-    population *pop = new_population(population_dimension);
-    init_simulation(pop);
-    FILE *out_file = fopen("sim_result.txt", "w");
+        max_rounds = 10000;
+        init_simulation(simulated_population);
+        for (round = 0; round < max_rounds; ++round) {
+            int i,
+                selected_index,
+                contributor_count;
+            person *learning_agent,
+                **learning_agent_groupmates,
+                *group_leader_candidate;
 
-    int multiplication_factor_r = 1;
+            learning_agent = get_random_person(simulated_population);
+            learning_agent_groupmates = get_group(simulated_population, learning_agent, primary_groupmate_selection_strategy, groupmate_count);
 
-    int round;
-    for (round = 0; round < 1000; ++round) {
-        clear_grouping_status(pop);
-        int i;
-        person *p = get_random_person(pop);
-        person **p_groupmates = get_group(pop, p, selection_strategy, groupmate_count);
+            /* Learning agent's groupmates play in their own local groups as well. */
+            for (i = 0; i < groupmate_count; ++i) {
+                person **secondary_groupmates;
 
-//        p->__in_group = TRUE;
-//        print_population_group(pop);
-//
-//        for (i = 0; i < 4; ++i) {
-//            p_groupmates[i]->__in_group = TRUE;
-//        }
-//
-//        print_population_group(pop);
+                secondary_groupmates = get_group(
+                        simulated_population,
+                        learning_agent_groupmates[i],
+                        secondary_groupmate_selection_strategy,
+                        groupmate_count
+                );
+                contributions = collect_contributions(
+                        learning_agent_groupmates[i],
+                        (const person **) secondary_groupmates,
+                        groupmate_count
+                );
+                split_contributions(
+                        learning_agent_groupmates[i],
+                        secondary_groupmates,
+                        groupmate_count,
+                        contributions,
+                        multiplication_factor_r
+                );
+                free(secondary_groupmates);
+            }
 
-        for (i = 0; i < groupmate_count; ++i) {
-            person **gm_groupmates = get_group(pop, p_groupmates[i], selection_strategy, groupmate_count);
-            int contribs = collect_contributions(p_groupmates[i], (const person **) gm_groupmates, groupmate_count);
+            /* Let the agent and their groupmates play in the primary group. */
+            contributions = collect_contributions(learning_agent, (const person **) learning_agent_groupmates, groupmate_count);
             split_contributions(
-                    p_groupmates[i],
-                    gm_groupmates,
+                    learning_agent,
+                    learning_agent_groupmates,
                     groupmate_count,
-                    contribs,
+                    contributions,
                     multiplication_factor_r
-                    );
-//            int j;
-//            for (j = 0; j < 4; ++j) {
-//                gm_groupmates[j]->__in_group = TRUE;
-//            }
-//            p_groupmates[i]->__in_group = TRUE;
-//            print_population_group(pop);
-//            print_population_profit(pop);
-            free(gm_groupmates);
+            );
+
+            /* Choose a group leader/local influencer candidate from primary groupmates. */
+            selected_index = (rand() % groupmate_count - 1) + 1;
+            group_leader_candidate = learning_agent_groupmates[selected_index];
+
+            if (group_leader_candidate->__profit > learning_agent->__profit)
+                learning_agent->__contributing_strategy = group_leader_candidate->__contributing_strategy;
+
+            contributor_count = get_contrubutor_count(simulated_population);
+            fprintf(out_file, "%d\t%d\t%d\r\n", multiplication_factor_r, round, contributor_count);
+
+#ifdef DEBUG
+            print_population_profit(simulated_population);
+            print_population_group(simulated_population);
+            print_population_strategy(simulated_population);
+#endif
+            clear_grouping_status(simulated_population);
+            
+            free(learning_agent_groupmates);
         }
-//        print_population_group(pop);
-        int contribs = collect_contributions(p, (const person **) p_groupmates, groupmate_count);
-        split_contributions(
-                p,
-                p_groupmates,
-                groupmate_count,
-                contribs,
-                multiplication_factor_r
-        );
-
-        int selected_index = (rand() % groupmate_count - 1) + 1;
-        person *person1 = p_groupmates[selected_index];
-        if (person1->__profit > p_groupmates[0]->__profit)
-            p_groupmates[0]->__contributing_strategy = person1->__contributing_strategy;
-
-        int contributor_count = get_contrubutor_count(pop);
-        fprintf(out_file, "%d\t%d\r\n",round, contributor_count);
-
-
-//        print_population_profit(pop);
-//        printf("\n");
-
-//        clear_grouping_status(pop);
-        print_population_strategy(pop);
-        free(p_groupmates);
+        fprintf(out_file, "\r\n\r\n");
     }
-
     fclose(out_file);
-    delete_population(pop);
+    delete_population(simulated_population);
 
     return 0;
 }
