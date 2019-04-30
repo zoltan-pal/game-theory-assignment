@@ -16,6 +16,7 @@ void print_population_profit(population const *);
 
 void clear_grouping_status(population const *);
 
+void reset_round(population const *);
 person **get_group(population const *, person const *, coordinates *(*)(person const *, population const *, int), int count);
 
 person *get_random_person(population const *);
@@ -29,6 +30,8 @@ int collect_contributions(person const *, person const **, int);
 void split_contributions(person *, person **, int, int, double);
 
 int get_contrubutor_count(population const *);
+
+void reset_profits(population *);
 
 void delete_population(population *);
 

@@ -1,9 +1,5 @@
 #include <malloc.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
 #include "population.h"
-#include "dimension.h"
 
 struct population {
     person **__people;
@@ -45,6 +41,19 @@ void clear_grouping_status(population const *_population) {
     for (row = 0; row < _population->__dimension.height; ++row) {
         for (col = 0; col < _population->__dimension.width; ++col) {
             _population->__people[row][col].__in_group = FALSE;
+        }
+    }
+}
+
+
+void reset_round(population const *_population) {
+    int row,
+            col;
+
+    for (row = 0; row < _population->__dimension.height; ++row) {
+        for (col = 0; col < _population->__dimension.width; ++col) {
+            _population->__people[row][col].__in_group = FALSE;
+            _population->__people[row][col].__profit = 0;
         }
     }
 }
@@ -136,7 +145,8 @@ coordinates *select_randomly(person const *_preselected_person, population const
         x = rand() % x_max;
         y = rand() % y_max;
 
-        if(_population->__people[y][x].__in_group)
+        if (_population->__people[y][x].__in_group &&
+            !(x == _preselected_person->__coordinates.x && y == _preselected_person->__coordinates.y))
             continue;
                 
         selected_coordinates[i].x = x;
@@ -225,6 +235,17 @@ int get_contrubutor_count(population const *_population) {
         }
     }
     return contributor_count;
+}
+
+void reset_profits(population *_population) {
+    int row,
+            col;
+
+    for (row = 0; row < _population->__dimension.height; ++row) {
+        for (col = 0; col < _population->__dimension.width; ++col) {
+            _population->__people[row][col].__profit = 0;
+        }
+    }
 }
 
 /* "PRIVATE" FUNC. IMPL. */
