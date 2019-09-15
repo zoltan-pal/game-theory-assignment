@@ -2,8 +2,8 @@
 #define COORDINATES_H
 
 typedef struct coordinates {
-    int x,
-            y;
+    int x;
+    int y;
 } coordinates;
 
 coordinates new_coordinates(int, int);
