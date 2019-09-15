@@ -1,10 +1,7 @@
-/* 
-    set yrange [:] reverse
-    splot "sim_result.txt" u 1:2:3 with lines
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 #include "population.h"
 

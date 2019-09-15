@@ -1,4 +1,7 @@
+#include <stdio.h>
+#include <stdlib.h>
 #include <malloc.h>
+
 #include "population.h"
 
 struct population {
